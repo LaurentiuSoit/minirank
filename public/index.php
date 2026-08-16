@@ -212,8 +212,69 @@ function handleDelete(int $id): void
 
 function handleRefresh(): void
 {
-    // Step 8 (M3): generate today's positions, return JSON
-    sendJson(['status' => 'not implemented']);
+    $pdo = getPdo();
+    $today = date('Y-m-d');
+
+    $pdo->beginTransaction();
+    try {
+        // Fetch all keywords with their most recent position (correlated subquery,
+        // same pattern as handleList()).
+        $select = $pdo->prepare(
+            'SELECT k.id, k.phrase,
+                    (SELECT p.position FROM positions p
+                     WHERE p.keyword_id = k.id
+                     ORDER BY p.recorded_at DESC, p.id DESC
+                     LIMIT 1) AS latest_position
+             FROM keywords k
+             ORDER BY k.id ASC'
+        );
+        $select->execute();
+        $rows = $select->fetchAll(PDO::FETCH_ASSOC);
+
+        // Prepare the upsert once; execute per-keyword with different params.
+        $upsert = $pdo->prepare(
+            'INSERT INTO positions (keyword_id, position, recorded_at)
+             VALUES (?, ?, ?)
+             ON CONFLICT(keyword_id, recorded_at) DO UPDATE SET position = excluded.position'
+        );
+
+        $result = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            $base = $row['latest_position'] !== null
+                ? (int) $row['latest_position']
+                : random_int(20, 80);
+
+            // Random walk step: ±3, clamped to 1..100 — same range as seed.php.
+            $newPosition = max(1, min(100, $base + random_int(-3, 3)));
+
+            $upsert->execute([$id, $newPosition, $today]);
+
+            $result[] = [
+                'id'       => $id,
+                'phrase'   => $row['phrase'],
+                'position' => $newPosition,
+                'trend'    => getKeywordTrend($pdo, $id) ?? 'stable',
+            ];
+        }
+
+        $pdo->commit();
+
+        sendJson([
+            'status'   => 'ok',
+            'updated'  => count($result),
+            'keywords' => $result,
+        ]);
+    } catch (\Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        http_response_code(500);
+        sendJson([
+            'status'  => 'error',
+            'message' => 'Refresh failed.',
+        ]);
+    }
 }
 
 // --- Request parsing ---
