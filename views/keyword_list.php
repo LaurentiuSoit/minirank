@@ -4,6 +4,8 @@
 ?>
 
 <div class="list-header">
+    <a href="/add" class="add-btn">Add keyword</a>
+
     <form method="get" action="/" class="search-form">
         <input type="search" name="q"
                value="<?= escape((string)($searchTerm ?? '')) ?>"
@@ -29,6 +31,7 @@
                 <th>Website</th>
                 <th>Position</th>
                 <th>7-day trend</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -47,11 +50,18 @@
                     </td>
                     <td class="keyword-website"><?= $website ?></td>
                     <td class="keyword-position"><?= $position ?? '--' ?></td>
-                    <td class="keyword-trend">
-                        <span class="trend <?= $trendClass ?>">
-                            <?= $trend !== null ? $trend : 'no data' ?>
-                        </span>
-                    </td>
+                     <td class="keyword-trend">
+                         <span class="trend <?= $trendClass ?>">
+                             <?= $trend !== null ? $trend : 'no data' ?>
+                         </span>
+                     </td>
+                     <td class="keyword-actions">
+                         <a href="/edit/<?= $id ?>" class="edit-link">Edit</a>
+                         <form method="post" action="/delete/<?= $id ?>" class="delete-form"
+                               onsubmit="return confirm('Are you sure you want to remove this keyword?');">
+                             <button type="submit" class="delete-btn">Delete</button>
+                         </form>
+                     </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

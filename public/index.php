@@ -101,14 +101,38 @@ function handleList(): void
 
 function handleAddForm(): void
 {
-    // Step 7 (M1): render add form
-    echo 'Add form (coming in step 7)';
+    renderPage('Add Keyword', 'keyword_form.php', [
+        'keywordId'    => null,
+        'phrase'       => '',
+        'error'        => null,
+        'formAction'   => '/add',
+        'submitLabel'  => 'Add keyword',
+    ]);
 }
 
 function handleCreate(): void
 {
-    // Step 7 (M1): validate POST, INSERT keyword, redirect to /
-    echo 'Create (coming in step 7)';
+    $pdo = getPdo();
+
+    $phrase = validateString($_POST['phrase'] ?? null, 200);
+
+    if ($phrase === null) {
+        renderPage('Add Keyword', 'keyword_form.php', [
+            'keywordId'    => null,
+            'phrase'       => is_string($_POST['phrase'] ?? null) ? $_POST['phrase'] : '',
+            'error'        => 'Please enter a keyword (1-200 characters).',
+            'formAction'   => '/add',
+            'submitLabel'  => 'Add keyword',
+        ]);
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO keywords (phrase, website, created_at) VALUES (?, ?, ?)'
+    );
+    $stmt->execute([$phrase, SITE_URL, date('Y-m-d H:i:s')]);
+
+    redirect('/');
 }
 
 function handleDetail(int $id): void
@@ -119,20 +143,71 @@ function handleDetail(int $id): void
 
 function handleEditForm(int $id): void
 {
-    // Step 7 (M1): query keyword, render edit form
-    echo "Edit form for keyword $id (coming in step 7)";
+    $pdo = getPdo();
+
+    $stmt = $pdo->prepare('SELECT id, phrase FROM keywords WHERE id = ?');
+    $stmt->execute([$id]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($row === false) {
+        sendNotFound('Keyword not found.');
+    }
+
+    renderPage('Edit Keyword', 'keyword_form.php', [
+        'keywordId'    => (int) $row['id'],
+        'phrase'       => $row['phrase'],
+        'error'        => null,
+        'formAction'   => '/edit/' . (int) $row['id'],
+        'submitLabel'  => 'Update keyword',
+    ]);
 }
 
 function handleUpdate(int $id): void
 {
-    // Step 7 (M1): validate POST, UPDATE keyword, redirect
-    echo "Update keyword $id (coming in step 7)";
+    $pdo = getPdo();
+
+    // Verify keyword exists (don't silently no-op on stale form POST).
+    $stmt = $pdo->prepare('SELECT id FROM keywords WHERE id = ?');
+    $stmt->execute([$id]);
+    if ($stmt->fetchColumn() === false) {
+        sendNotFound('Keyword not found.');
+    }
+
+    $phrase = validateString($_POST['phrase'] ?? null, 200);
+
+    if ($phrase === null) {
+        renderPage('Edit Keyword', 'keyword_form.php', [
+            'keywordId'    => $id,
+            'phrase'       => is_string($_POST['phrase'] ?? null) ? $_POST['phrase'] : '',
+            'error'        => 'Please enter a keyword (1-200 characters).',
+            'formAction'   => '/edit/' . $id,
+            'submitLabel'  => 'Update keyword',
+        ]);
+        return;
+    }
+
+    $stmt = $pdo->prepare('UPDATE keywords SET phrase = ? WHERE id = ?');
+    $stmt->execute([$phrase, $id]);
+
+    redirect('/');
 }
 
 function handleDelete(int $id): void
 {
-    // Step 7 (M1): DELETE keyword, redirect
-    echo "Delete keyword $id (coming in step 7)";
+    $pdo = getPdo();
+
+    // Verify keyword exists (avoid silent no-op on stale POST).
+    $stmt = $pdo->prepare('SELECT id FROM keywords WHERE id = ?');
+    $stmt->execute([$id]);
+    if ($stmt->fetchColumn() === false) {
+        sendNotFound('Keyword not found.');
+    }
+
+    // Positions cascade-delete via ON DELETE CASCADE (seed.php schema).
+    $stmt = $pdo->prepare('DELETE FROM keywords WHERE id = ?');
+    $stmt->execute([$id]);
+
+    redirect('/');
 }
 
 function handleRefresh(): void

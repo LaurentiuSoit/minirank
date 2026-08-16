@@ -35,7 +35,7 @@ CREATE TABLE positions (
     position    INTEGER NOT NULL CHECK (position >= 1 AND position <= 100),
     recorded_at TEXT    NOT NULL,
     UNIQUE (keyword_id, recorded_at),
-    FOREIGN KEY (keyword_id) REFERENCES keywords (id)
+    FOREIGN KEY (keyword_id) REFERENCES keywords (id) ON DELETE CASCADE
 )
 SQL);
 
