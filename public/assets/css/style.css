@@ -1,0 +1,73 @@
+/* Minimal baseline — expanded in step 10 (M8 responsive CSS) */
+
+.keyword-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+.keyword-table th,
+.keyword-table td {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: left;
+}
+.keyword-table thead th {
+    background: #f4f4f4;
+}
+.list-header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.search-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.search-form input {
+    padding: 0.4rem;
+    width: 200px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+.search-form button {
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+}
+.clear-search {
+    font-size: 0.85rem;
+}
+.refresh-btn {
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+}
+.refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+.refresh-status {
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border-radius: 3px;
+}
+.status-ok {
+    background: #d4edda;
+    color: #155724;
+}
+.status-error {
+    background: #f8d7da;
+    color: #721c24;
+}
+.trend.improved {
+    color: #1a7f37;
+}
+.trend.declined {
+    color: #cf222e;
+}
+.trend.stable {
+    color: #6a737d;
+}
+.empty-state {
+    color: #6a737d;
+}

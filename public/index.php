@@ -55,8 +55,48 @@ function renderPage(string $title, string $viewTemplate, array $data = []): void
 
 function handleList(): void
 {
-    // Step 6 (M4): query keywords, render views/keyword_list.php
-    echo 'Keyword list (coming in step 6)';
+    $pdo = getPdo();
+
+    $searchTerm = validateString($_GET['q'] ?? null, 100);
+
+    $sql = 'SELECT k.id, k.phrase, k.website, p.position
+            FROM keywords k
+            LEFT JOIN positions p
+              ON p.id = (SELECT id FROM positions
+                         WHERE keyword_id = k.id
+                         ORDER BY recorded_at DESC, id DESC
+                         LIMIT 1)';
+
+    $params = [];
+    if ($searchTerm !== null) {
+        $sql .= ' WHERE k.phrase LIKE ? OR k.website LIKE ?';
+        $params[] = '%' . $searchTerm . '%';
+        $params[] = '%' . $searchTerm . '%';
+    }
+
+    $sql .= ' ORDER BY k.id ASC';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Compute trend per keyword in the handler (not the view) — AGENTS rule:
+    // "Do not put SQL or business logic in views/."
+    $keywords = [];
+    foreach ($rows as $row) {
+        $keywords[] = [
+            'id'       => (int) $row['id'],
+            'phrase'   => $row['phrase'],
+            'website'  => $row['website'],
+            'position' => $row['position'] !== null ? (int) $row['position'] : null,
+            'trend'    => getKeywordTrend($pdo, (int) $row['id']),
+        ];
+    }
+
+    renderPage('Keyword List', 'keyword_list.php', [
+        'keywords'   => $keywords,
+        'searchTerm' => $searchTerm,
+    ]);
 }
 
 function handleAddForm(): void

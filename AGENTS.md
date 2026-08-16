@@ -69,6 +69,7 @@ position 100 is the worst.
 - Do not put SQL or business logic in `views/`. Views receive prepared data and
   print it.
 - Do not write to the database from a GET request. Mutations go through POST.
+- Do not add git commands in plans. I will handle git myself. You can, however, include commit messages as suggestions.
 
 ## How to work with me
 
