@@ -1,0 +1,1 @@
+Initial planning session for application structure : https://opncd.ai/share/e7uz2goK
