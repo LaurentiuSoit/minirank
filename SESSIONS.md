@@ -23,3 +23,5 @@ Create plan for stretch goals : https://opncd.ai/share/9RsnydPB
 Implement docker compose setup : https://opncd.ai/share/aO8tkagG
 
 Add chart to keyword detail page : https://opncd.ai/share/fQRU4Ylc
+
+Add CSV export functionality : https://opncd.ai/share/NNMS9EyM
