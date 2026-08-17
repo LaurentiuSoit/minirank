@@ -152,3 +152,53 @@
 .delete-btn:hover {
     background: #a81919;
 }
+
+/* Keyword detail page (M5) — minimal styles, expanded in step 10 (M8) */
+
+.back-link {
+    display: inline-block;
+    text-decoration: none;
+    color: #0366d6;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+.detail-title {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.5rem;
+}
+.keyword-website {
+    margin: 0 0 0.25rem 0;
+    color: #6a737d;
+}
+.keyword-created {
+    margin: 0 0 1rem 0;
+    font-size: 0.85rem;
+    color: #6a737d;
+}
+.detail-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+.summary-label {
+    font-weight: 600;
+    color: #24292f;
+}
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+.summary-hint {
+    font-size: 0.8rem;
+    color: #6a737d;
+}
+.detail-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.delete-form-inline {
+    display: inline;
+}

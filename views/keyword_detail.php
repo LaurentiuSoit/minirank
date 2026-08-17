@@ -1,0 +1,65 @@
+<?php
+/** @var array $keyword  [id, phrase, website, created_at] */
+/** @var array $history  Entries: [date, position, trend, hasTrend] — newest first */
+/** @var int|null $currentPosition */
+/** @var string $currentTrend  */
+
+$id        = (int) $keyword['id'];
+$phrase    = escape($keyword['phrase']);
+$website   = escape($keyword['website']);
+$createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
+?>
+
+<a href="/" class="back-link">Back to keywords</a>
+
+<h2 class="detail-title"><?= $phrase ?></h2>
+<p class="keyword-website"><?= $website ?></p>
+<p class="keyword-created">Tracking since: <?= $createdAt ?></p>
+
+<div class="detail-summary">
+    <span class="summary-label">Current position:</span>
+    <span class="summary-value"><?= $currentPosition ?? '--' ?></span>
+    <span class="trend <?= escape($currentTrend) ?>"><?= escape($currentTrend) ?></span>
+    <span class="summary-hint">(7-day trend)</span>
+</div>
+
+<div class="detail-actions">
+    <a href="/edit/<?= $id ?>" class="edit-link">Edit keyword</a>
+    <form method="post" action="/delete/<?= $id ?>" class="delete-form-inline"
+          onsubmit="return confirm('Are you sure you want to remove this keyword?');">
+        <button type="submit" class="delete-btn">Delete keyword</button>
+    </form>
+</div>
+
+<?php if (count($history) === 0): ?>
+    <p class="empty-state">No position history recorded yet.</p>
+<?php else: ?>
+    <table class="keyword-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Position</th>
+                <th>Trend (vs previous day)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($history as $entry): ?>
+                <?php
+                    $trend      = $entry['trend'];
+                    $trendClass = $trend ?? 'stable';
+                ?>
+                <tr>
+                    <td><?= escape($entry['date']) ?></td>
+                    <td><?= $entry['position'] ?></td>
+                    <td>
+                        <?php if ($entry['hasTrend']): ?>
+                            <span class="trend <?= escape($trendClass) ?>"><?= escape($trend) ?></span>
+                        <?php else: ?>
+                            &mdash;
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>

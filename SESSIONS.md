@@ -11,3 +11,5 @@ Add routing and basic views : https://opncd.ai/share/x1ruB3fX
 Add keyword list and refresh button : https://opncd.ai/share/zxjFG3hd
 
 Implement keyword CRUD with forms : https://opncd.ai/share/WBLBNrD1
+
+Implement keyword detail page and trend calculation : https://opncd.ai/share/1bWg0OeC

@@ -137,8 +137,52 @@ function handleCreate(): void
 
 function handleDetail(int $id): void
 {
-    // Step 9 (M5): query positions for keyword, render detail page
-    echo "Detail for keyword $id (coming in step 9)";
+    $pdo = getPdo();
+
+    $stmt = $pdo->prepare(
+        'SELECT id, phrase, website, created_at FROM keywords WHERE id = ?'
+    );
+    $stmt->execute([$id]);
+    $keyword = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($keyword === false) {
+        sendNotFound('Keyword not found.');
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT position, recorded_at
+         FROM positions
+         WHERE keyword_id = ?
+         ORDER BY recorded_at DESC, id DESC'
+    );
+    $stmt->execute([$id]);
+    $positionRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $history = [];
+    for ($i = 0; $i < count($positionRows); $i++) {
+        $currentPosition = (int) $positionRows[$i]['position'];
+        $previousPosition = isset($positionRows[$i + 1])
+            ? (int) $positionRows[$i + 1]['position']
+            : null;
+
+        $history[] = [
+            'date'     => date('M j, Y', strtotime($positionRows[$i]['recorded_at'])),
+            'position' => $currentPosition,
+            'trend'    => $previousPosition !== null
+                ? calculateTrend($currentPosition, $previousPosition)
+                : null,
+            'hasTrend' => $previousPosition !== null,
+        ];
+    }
+
+    $currentTrend = getKeywordTrend($pdo, (int) $keyword['id']) ?? 'stable';
+
+    renderPage('Keyword Detail', 'keyword_detail.php', [
+        'keyword'         => $keyword,
+        'history'         => $history,
+        'currentPosition' => count($history) > 0 ? $history[0]['position'] : null,
+        'currentTrend'    => $currentTrend,
+    ]);
 }
 
 function handleEditForm(int $id): void
