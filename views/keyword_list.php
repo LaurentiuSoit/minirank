@@ -24,10 +24,11 @@
 <?php if (count($keywords) === 0): ?>
     <p class="empty-state">No keywords found.</p>
 <?php else: ?>
-    <table class="keyword-table">
-        <thead>
-            <tr>
-                <th>Keyword</th>
+    <div class="table-container">
+        <table class="keyword-table">
+            <thead>
+                <tr>
+                    <th>Keyword</th>
                 <th>Website</th>
                 <th>Position</th>
                 <th>7-day trend</th>
@@ -66,6 +67,7 @@
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 <?php endif; ?>
 
 <script src="/assets/js/refresh.js"></script>

@@ -13,3 +13,5 @@ Add keyword list and refresh button : https://opncd.ai/share/zxjFG3hd
 Implement keyword CRUD with forms : https://opncd.ai/share/WBLBNrD1
 
 Implement keyword detail page and trend calculation : https://opncd.ai/share/1bWg0OeC
+
+Add responsive CSS for phone-width usability (M8): https://opncd.ai/share/8npLWetD

@@ -34,10 +34,11 @@ $createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
 <?php if (count($history) === 0): ?>
     <p class="empty-state">No position history recorded yet.</p>
 <?php else: ?>
-    <table class="keyword-table">
-        <thead>
-            <tr>
-                <th>Date</th>
+    <div class="table-container">
+        <table class="keyword-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
                 <th>Position</th>
                 <th>Trend (vs previous day)</th>
             </tr>
@@ -62,4 +63,5 @@ $createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 <?php endif; ?>
