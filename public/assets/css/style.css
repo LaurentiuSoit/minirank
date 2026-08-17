@@ -237,6 +237,80 @@ main {
     display: inline;
 }
 
+/* === S1: Detail line chart === */
+
+.chart-wrapper {
+    margin: 1.5rem 0;
+    overflow: visible;
+}
+.detail-chart {
+    width: 100%;
+    height: auto;
+    max-width: 800px;
+    display: block;
+}
+.chart-bg {
+    fill: #fafbfc;
+    stroke: #e0e0e0;
+    stroke-width: 1;
+}
+.chart-line {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+.chart-line-improved {
+    stroke: #1a7f37;
+}
+.chart-line-declined {
+    stroke: #cf222e;
+}
+.chart-line-stable {
+    stroke: #6a737d;
+}
+.chart-dot {
+    stroke: #ffffff;
+    stroke-width: 1;
+}
+.chart-dot-improved {
+    fill: #1a7f37;
+}
+.chart-dot-declined {
+    fill: #cf222e;
+}
+.chart-dot-stable {
+    fill: #6a737d;
+}
+.chart-grid {
+    stroke: #e8e8e8;
+    stroke-width: 1;
+    stroke-dasharray: 2, 2;
+}
+.chart-axis-label {
+    fill: #6a737d;
+    font-size: 11px;
+    user-select: none;
+}
+.chart-zoom-text {
+    font-weight: 600;
+}
+.chart-scrollbar-bg {
+    fill: #eaecef;
+}
+.chart-scrollbar-thumb {
+    fill: #0366d6;
+    opacity: 0.7;
+}
+.chart-hint {
+    margin: 0.35rem 0 0 0;
+    font-size: 0.78rem;
+    color: #6a737d;
+    max-width: 800px;
+    text-align: right;
+    user-select: none;
+}
+
 /* === Step 10: M8 Responsive CSS (mobile) === */
 
 @media (max-width: 640px) {
@@ -308,5 +382,10 @@ main {
     .keyword-table {
         width: auto;
         min-width: 550px;
+    }
+
+    /* Chart: full width on narrow screens */
+    .detail-chart {
+        max-width: 100%;
     }
 }

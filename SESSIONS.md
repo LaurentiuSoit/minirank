@@ -21,3 +21,5 @@ Create initial README.md : https://opncd.ai/share/0yOOxQG3
 Create plan for stretch goals : https://opncd.ai/share/9RsnydPB
 
 Implement docker compose setup : https://opncd.ai/share/aO8tkagG
+
+Add chart to keyword detail page : https://opncd.ai/share/fQRU4Ylc

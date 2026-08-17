@@ -1,6 +1,7 @@
 <?php
 /** @var array $keyword  [id, phrase, website, created_at] */
 /** @var array $history  Entries: [date, position, trend, hasTrend] — newest first */
+/** @var array $positions  [date, position] pairs, oldest-first, for the line chart */
 /** @var int|null $currentPosition */
 /** @var string $currentTrend  */
 
@@ -22,6 +23,15 @@ $createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
     <span class="trend <?= escape($currentTrend) ?>"><?= escape($currentTrend) ?></span>
     <span class="summary-hint">(7-day trend)</span>
 </div>
+
+<?php if (count($positions) > 0): ?>
+    <div class="chart-wrapper">
+        <svg class="detail-chart" viewBox="0 0 800 350" role="img"
+             aria-label="Position history chart">
+        </svg>
+        <p class="chart-hint">Scroll to zoom &bull; Drag to pan &bull; Double-click to reset</p>
+    </div>
+<?php endif; ?>
 
 <div class="detail-actions">
     <a href="/edit/<?= $id ?>" class="edit-link">Edit keyword</a>
@@ -64,4 +74,11 @@ $createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
         </tbody>
     </table>
     </div>
+<?php endif; ?>
+
+<?php if (count($positions) > 0): ?>
+    <script>
+        window.MINIRANK_POSITIONS = <?= json_encode($positions, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) ?>;
+    </script>
+    <script src="/assets/js/chart.js"></script>
 <?php endif; ?>

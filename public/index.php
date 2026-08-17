@@ -175,11 +175,23 @@ function handleDetail(int $id): void
         ];
     }
 
+    // Compact [date, position] pairs for the line chart, in chronological
+    // order (oldest first). Raw Y-m-d dates and integer positions — no user
+    // input, position enforced 1-100 by the DB CHECK constraint.
+    $positions = [];
+    foreach (array_reverse($positionRows) as $row) {
+        $positions[] = [
+            $row['recorded_at'],
+            (int) $row['position'],
+        ];
+    }
+
     $currentTrend = getKeywordTrend($pdo, (int) $keyword['id']) ?? 'stable';
 
     renderPage('Keyword Detail', 'keyword_detail.php', [
         'keyword'         => $keyword,
         'history'         => $history,
+        'positions'       => $positions,
         'currentPosition' => count($history) > 0 ? $history[0]['position'] : null,
         'currentTrend'    => $currentTrend,
     ]);
