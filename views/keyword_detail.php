@@ -34,6 +34,7 @@ $createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
 <?php endif; ?>
 
 <div class="detail-actions">
+    <a href="/export/<?= $id ?>" class="export-link">Export CSV</a>
     <a href="/edit/<?= $id ?>" class="edit-link">Edit keyword</a>
     <form method="post" action="/delete/<?= $id ?>" class="delete-form-inline"
           onsubmit="return confirm('Are you sure you want to remove this keyword?');">

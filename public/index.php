@@ -197,6 +197,53 @@ function handleDetail(int $id): void
     ]);
 }
 
+function handleExport(int $id): void
+{
+    $pdo = getPdo();
+
+    $stmt = $pdo->prepare(
+        'SELECT id, phrase, created_at FROM keywords WHERE id = ?'
+    );
+    $stmt->execute([$id]);
+    $keyword = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($keyword === false) {
+        sendNotFound('Keyword not found.');
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT recorded_at, position
+         FROM positions
+         WHERE keyword_id = ?
+         ORDER BY recorded_at DESC'
+    );
+    $stmt->execute([$id]);
+    $positionRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $filename = sanitizeFilename($keyword['phrase'], $id);
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['Date', 'Position', 'Trend'], ',', '"', '');
+
+    for ($i = 0; $i < count($positionRows); $i++) {
+        $position = (int) $positionRows[$i]['position'];
+        $date = date('M j, Y', strtotime($positionRows[$i]['recorded_at']));
+        $previousPosition = isset($positionRows[$i + 1])
+            ? (int) $positionRows[$i + 1]['position']
+            : null;
+        $trend = $previousPosition !== null
+            ? calculateTrend($position, $previousPosition)
+            : '';
+        fputcsv($output, [$date, $position, $trend], ',', '"', '');
+    }
+
+    fclose($output);
+    exit;
+}
+
 function handleEditForm(int $id): void
 {
     $pdo = getPdo();
@@ -353,6 +400,8 @@ if ($method === 'GET' && $path === '/') {
     handleCreate();
 } elseif ($method === 'GET' && $first === 'keyword' && ($id = validateIntId($second)) !== null) {
     handleDetail($id);
+} elseif ($method === 'GET' && $first === 'export' && ($id = validateIntId($second)) !== null) {
+    handleExport($id);
 } elseif ($method === 'GET' && $first === 'edit' && ($id = validateIntId($second)) !== null) {
     handleEditForm($id);
 } elseif ($method === 'POST' && $first === 'edit' && ($id = validateIntId($second)) !== null) {

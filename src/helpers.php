@@ -60,3 +60,15 @@ function escape(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
+
+function sanitizeFilename(string $phrase, int $id): string
+{
+    $slug = preg_replace('/[^a-zA-Z0-9\s\-]/', '', $phrase);
+    $slug = preg_replace('/\s+/', '-', trim($slug));
+    $slug = substr($slug, 0, 50);
+
+    if ($slug === '' || $slug === '-') {
+        return 'keyword-' . $id . '.csv';
+    }
+    return $slug . '.csv';
+}
