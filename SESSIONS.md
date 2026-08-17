@@ -15,3 +15,9 @@ Implement keyword CRUD with forms : https://opncd.ai/share/WBLBNrD1
 Implement keyword detail page and trend calculation : https://opncd.ai/share/1bWg0OeC
 
 Add responsive CSS for phone-width usability (M8): https://opncd.ai/share/8npLWetD
+
+Create initial README.md : https://opncd.ai/share/0yOOxQG3
+
+Create plan for stretch goals : https://opncd.ai/share/9RsnydPB
+
+Implement docker compose setup : https://opncd.ai/share/aO8tkagG

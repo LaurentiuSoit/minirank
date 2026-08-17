@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist only the SQLite database on the host; app source lives in the image.
+      - ./data:/app/data
+    command: php -S 0.0.0.0:8000 -t public public/router.php

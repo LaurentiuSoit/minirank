@@ -41,6 +41,19 @@ open http://localhost:8000
 
 That's it — the app is running. To start fresh at any time, re-run `php seed.php` (it deletes and recreates the database).
 
+### Docker
+
+```bash
+docker compose up            # first run builds the image
+# then open http://localhost:8000
+```
+
+To regenerate the demo database from inside the container (**CLI**, not an HTTP request):
+
+```bash
+docker compose run --rm web php seed.php
+```
+
 ## Usage
 
 | Action | How |
