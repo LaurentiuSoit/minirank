@@ -1,17 +1,19 @@
 <?php
-/** @var array $keyword  [id, phrase, website, created_at] */
+/** @var array $keyword  [id, phrase, created_at] */
 /** @var array $history  Entries: [date, position, trend, hasTrend] — newest first */
 /** @var array $positions  [date, position] pairs, oldest-first, for the line chart */
 /** @var int|null $currentPosition */
 /** @var string $currentTrend  */
+/** @var int $projectId */
+/** @var array $project  [id, user_id, name, website, created_at] */
 
 $id        = (int) $keyword['id'];
 $phrase    = escape($keyword['phrase']);
-$website   = escape($keyword['website']);
+$website   = escape($project['website']);
 $createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
 ?>
 
-<a href="/" class="back-link">Back to keywords</a>
+<a href="/project/<?= $projectId ?>" class="back-link">Back to keywords</a>
 
 <h2 class="detail-title"><?= $phrase ?></h2>
 <p class="keyword-website"><?= $website ?></p>
@@ -34,12 +36,12 @@ $createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
 <?php endif; ?>
 
 <div class="detail-actions">
-    <a href="/export/<?= $id ?>" class="export-link">Export CSV</a>
-    <a href="/edit/<?= $id ?>" class="edit-link">Edit keyword</a>
-    <form method="post" action="/delete/<?= $id ?>" class="delete-form-inline"
+    <a href="/project/<?= $projectId ?>/keyword/<?= $id ?>/export" class="export-link">Export CSV</a>
+    <a href="/project/<?= $projectId ?>/keyword/<?= $id ?>/edit" class="edit-link">Edit keyword</a>
+    <form method="post" action="/project/<?= $projectId ?>/keyword/<?= $id ?>/delete" class="delete-form-inline"
            onsubmit="return confirm('Are you sure you want to remove this keyword?');">
-         <input type="hidden" name="csrf_token" value="<?= escape(csrfToken()) ?>">
-         <button type="submit" class="delete-btn">Delete keyword</button>
+          <input type="hidden" name="csrf_token" value="<?= escape(csrfToken()) ?>">
+          <button type="submit" class="delete-btn">Delete keyword</button>
     </form>
 </div>
 

@@ -5,7 +5,6 @@ date_default_timezone_set('UTC');
 
 const DATA_DIR = __DIR__ . '/../data';
 const DB_PATH = DATA_DIR . '/minirank.sqlite';
-const SITE_URL = 'https://www.example-shop.de';
 
 function ensureDataDir(): void
 {

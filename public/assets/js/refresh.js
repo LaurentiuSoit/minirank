@@ -1,4 +1,4 @@
-/* Refresh positions button — POST /refresh, update table rows in place.
+/* Refresh positions button — POST /project/{projectId}/refresh, update table rows in place.
    Forward-compatible with step 8's response format.
    Uses inline status text instead of alert dialogs. */
 
@@ -21,7 +21,11 @@ document.addEventListener('DOMContentLoaded', function () {
         var meta = document.querySelector('meta[name="csrf-token"]');
         var token = meta ? meta.getAttribute('content') : '';
 
-        fetch('/refresh', {
+        // Project-scoped refresh URL: POST /project/{projectId}/refresh
+        var projectId = btn.getAttribute('data-project-id');
+        var url = '/project/' + projectId + '/refresh';
+
+        fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'csrf_token=' + encodeURIComponent(token)

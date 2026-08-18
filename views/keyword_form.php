@@ -4,6 +4,7 @@
 /** @var string|null $error  Error message to display */
 /** @var string $formAction  POST target URL */
 /** @var string $submitLabel  Button text */
+/** @var int $projectId  ID of the owning project */
 ?>
 
 <?php if ($error !== null): ?>
@@ -18,6 +19,6 @@
            maxlength="200" required>
     <div class="form-actions">
         <button type="submit"><?= escape($submitLabel) ?></button>
-        <a href="/">Cancel</a>
+        <a href="/project/<?= $projectId ?>">Cancel</a>
     </div>
 </form>

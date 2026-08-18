@@ -25,6 +25,15 @@ function sendJson(array $data): void
 
 function renderPage(string $title, string $viewTemplate, array $data = []): void
 {
+    // Auto-inject the user's projects for the project switcher in layout.php (S2).
+    // Done in the controller layer so views stay free of SQL (AGENTS: no SQL in views/).
+    if (isLoggedIn()) {
+        $userId = currentUserId();
+        if ($userId !== null) {
+            $data['projects'] = getUserProjects(getPdo(), $userId);
+        }
+    }
+
     // extract() makes $data keys available as variables in the view.
     // EXTR_SKIP prevents overwriting $title.
     extract($data, EXTR_SKIP);
@@ -40,24 +49,24 @@ function renderPage(string $title, string $viewTemplate, array $data = []): void
 
 // --- Handler stubs (implemented in steps 6-9) ---
 
-function handleList(): void
+function handleList(int $projectId, array $project): void
 {
     $pdo = getPdo();
 
     $searchTerm = validateString($_GET['q'] ?? null, 100);
 
-    $sql = 'SELECT k.id, k.phrase, k.website, p.position
+    $sql = 'SELECT k.id, k.phrase, p.position
             FROM keywords k
             LEFT JOIN positions p
               ON p.id = (SELECT id FROM positions
                          WHERE keyword_id = k.id
                          ORDER BY recorded_at DESC, id DESC
-                         LIMIT 1)';
+                         LIMIT 1)
+            WHERE k.project_id = ?';
 
-    $params = [];
+    $params = [$projectId];
     if ($searchTerm !== null) {
-        $sql .= ' WHERE k.phrase LIKE ? OR k.website LIKE ?';
-        $params[] = '%' . $searchTerm . '%';
+        $sql .= ' AND k.phrase LIKE ?';
         $params[] = '%' . $searchTerm . '%';
     }
 
@@ -74,7 +83,6 @@ function handleList(): void
         $keywords[] = [
             'id'       => (int) $row['id'],
             'phrase'   => $row['phrase'],
-            'website'  => $row['website'],
             'position' => $row['position'] !== null ? (int) $row['position'] : null,
             'trend'    => getKeywordTrend($pdo, (int) $row['id']),
         ];
@@ -83,21 +91,24 @@ function handleList(): void
     renderPage('Keyword List', 'keyword_list.php', [
         'keywords'   => $keywords,
         'searchTerm' => $searchTerm,
+        'projectId'  => $projectId,
+        'project'    => $project,
     ]);
 }
 
-function handleAddForm(): void
+function handleAddForm(int $projectId, array $project): void
 {
     renderPage('Add Keyword', 'keyword_form.php', [
         'keywordId'    => null,
         'phrase'       => '',
         'error'        => null,
-        'formAction'   => '/add',
+        'formAction'   => '/project/' . $projectId . '/add',
         'submitLabel'  => 'Add keyword',
+        'projectId'    => $projectId,
     ]);
 }
 
-function handleCreate(): void
+function handleCreate(int $projectId, array $project): void
 {
     $pdo = getPdo();
 
@@ -108,28 +119,29 @@ function handleCreate(): void
             'keywordId'    => null,
             'phrase'       => is_string($_POST['phrase'] ?? null) ? $_POST['phrase'] : '',
             'error'        => 'Please enter a keyword (1-200 characters).',
-            'formAction'   => '/add',
+            'formAction'   => '/project/' . $projectId . '/add',
             'submitLabel'  => 'Add keyword',
+            'projectId'    => $projectId,
         ]);
         return;
     }
 
     $stmt = $pdo->prepare(
-        'INSERT INTO keywords (phrase, website, created_at) VALUES (?, ?, ?)'
+        'INSERT INTO keywords (project_id, phrase, created_at) VALUES (?, ?, ?)'
     );
-    $stmt->execute([$phrase, SITE_URL, date('Y-m-d H:i:s')]);
+    $stmt->execute([$projectId, $phrase, date('Y-m-d H:i:s')]);
 
-    redirect('/');
+    redirect('/project/' . $projectId);
 }
 
-function handleDetail(int $id): void
+function handleDetail(int $projectId, array $project, int $keywordId): void
 {
     $pdo = getPdo();
 
     $stmt = $pdo->prepare(
-        'SELECT id, phrase, website, created_at FROM keywords WHERE id = ?'
+        'SELECT id, phrase, created_at FROM keywords WHERE id = ? AND project_id = ?'
     );
-    $stmt->execute([$id]);
+    $stmt->execute([$keywordId, $projectId]);
     $keyword = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($keyword === false) {
@@ -142,7 +154,7 @@ function handleDetail(int $id): void
          WHERE keyword_id = ?
          ORDER BY recorded_at DESC, id DESC'
     );
-    $stmt->execute([$id]);
+    $stmt->execute([$keywordId]);
     $positionRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $history = [];
@@ -181,17 +193,19 @@ function handleDetail(int $id): void
         'positions'       => $positions,
         'currentPosition' => count($history) > 0 ? $history[0]['position'] : null,
         'currentTrend'    => $currentTrend,
+        'projectId'       => $projectId,
+        'project'         => $project,
     ]);
 }
 
-function handleExport(int $id): void
+function handleExport(int $projectId, array $project, int $keywordId): void
 {
     $pdo = getPdo();
 
     $stmt = $pdo->prepare(
-        'SELECT id, phrase, created_at FROM keywords WHERE id = ?'
+        'SELECT id, phrase FROM keywords WHERE id = ? AND project_id = ?'
     );
-    $stmt->execute([$id]);
+    $stmt->execute([$keywordId, $projectId]);
     $keyword = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($keyword === false) {
@@ -204,10 +218,10 @@ function handleExport(int $id): void
          WHERE keyword_id = ?
          ORDER BY recorded_at DESC'
     );
-    $stmt->execute([$id]);
+    $stmt->execute([$keywordId]);
     $positionRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $filename = sanitizeFilename($keyword['phrase'], $id);
+    $filename = sanitizeFilename($keyword['phrase'], $keywordId);
 
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -231,12 +245,12 @@ function handleExport(int $id): void
     exit;
 }
 
-function handleEditForm(int $id): void
+function handleEditForm(int $projectId, array $project, int $keywordId): void
 {
     $pdo = getPdo();
 
-    $stmt = $pdo->prepare('SELECT id, phrase FROM keywords WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('SELECT id, phrase FROM keywords WHERE id = ? AND project_id = ?');
+    $stmt->execute([$keywordId, $projectId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($row === false) {
@@ -247,18 +261,19 @@ function handleEditForm(int $id): void
         'keywordId'    => (int) $row['id'],
         'phrase'       => $row['phrase'],
         'error'        => null,
-        'formAction'   => '/edit/' . (int) $row['id'],
+        'formAction'   => '/project/' . $projectId . '/keyword/' . $keywordId . '/edit',
         'submitLabel'  => 'Update keyword',
+        'projectId'    => $projectId,
     ]);
 }
 
-function handleUpdate(int $id): void
+function handleUpdate(int $projectId, array $project, int $keywordId): void
 {
     $pdo = getPdo();
 
-    // Verify keyword exists (don't silently no-op on stale form POST).
-    $stmt = $pdo->prepare('SELECT id FROM keywords WHERE id = ?');
-    $stmt->execute([$id]);
+    // Verify keyword exists and belongs to this project (don't silently no-op on stale form POST).
+    $stmt = $pdo->prepare('SELECT id FROM keywords WHERE id = ? AND project_id = ?');
+    $stmt->execute([$keywordId, $projectId]);
     if ($stmt->fetchColumn() === false) {
         sendNotFound('Keyword not found.');
     }
@@ -267,48 +282,48 @@ function handleUpdate(int $id): void
 
     if ($phrase === null) {
         renderPage('Edit Keyword', 'keyword_form.php', [
-            'keywordId'    => $id,
+            'keywordId'    => $keywordId,
             'phrase'       => is_string($_POST['phrase'] ?? null) ? $_POST['phrase'] : '',
             'error'        => 'Please enter a keyword (1-200 characters).',
-            'formAction'   => '/edit/' . $id,
+            'formAction'   => '/project/' . $projectId . '/keyword/' . $keywordId . '/edit',
             'submitLabel'  => 'Update keyword',
+            'projectId'    => $projectId,
         ]);
         return;
     }
 
     $stmt = $pdo->prepare('UPDATE keywords SET phrase = ? WHERE id = ?');
-    $stmt->execute([$phrase, $id]);
+    $stmt->execute([$phrase, $keywordId]);
 
-    redirect('/');
+    redirect('/project/' . $projectId);
 }
 
-function handleDelete(int $id): void
+function handleDelete(int $projectId, array $project, int $keywordId): void
 {
     $pdo = getPdo();
 
-    // Verify keyword exists (avoid silent no-op on stale POST).
-    $stmt = $pdo->prepare('SELECT id FROM keywords WHERE id = ?');
-    $stmt->execute([$id]);
+    // Verify keyword exists and belongs to this project (avoid silent no-op on stale POST).
+    $stmt = $pdo->prepare('SELECT id FROM keywords WHERE id = ? AND project_id = ?');
+    $stmt->execute([$keywordId, $projectId]);
     if ($stmt->fetchColumn() === false) {
         sendNotFound('Keyword not found.');
     }
 
     // Positions cascade-delete via ON DELETE CASCADE (seed.php schema).
     $stmt = $pdo->prepare('DELETE FROM keywords WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt->execute([$keywordId]);
 
-    redirect('/');
+    redirect('/project/' . $projectId);
 }
 
-function handleRefresh(): void
+function handleRefresh(int $projectId): void
 {
     $pdo = getPdo();
     $today = date('Y-m-d');
 
     $pdo->beginTransaction();
     try {
-        // Fetch all keywords with their most recent position (correlated subquery,
-        // same pattern as handleList()).
+        // Fetch all keywords in this project with their most recent position.
         $select = $pdo->prepare(
             'SELECT k.id, k.phrase,
                     (SELECT p.position FROM positions p
@@ -316,9 +331,10 @@ function handleRefresh(): void
                      ORDER BY p.recorded_at DESC, p.id DESC
                      LIMIT 1) AS latest_position
              FROM keywords k
+             WHERE k.project_id = ?
              ORDER BY k.id ASC'
         );
-        $select->execute();
+        $select->execute([$projectId]);
         $rows = $select->fetchAll(PDO::FETCH_ASSOC);
 
         // Prepare the upsert once; execute per-keyword with different params.
@@ -473,6 +489,100 @@ function handleLogout(): void
     redirect('/login');
 }
 
+// --- Project handlers (S2) ---
+// Projects group keywords under a single tracked website. All project
+// mutations (create/edit/delete) are POST + CSRF + auth. Project CRUD is
+// separate from keyword CRUD but lives in the same dispatch file.
+
+function handleProjectForm(): void
+{
+    renderPage('Add Project', 'project_form.php', [
+        'projectId'      => null,
+        'projectName'    => '',
+        'projectWebsite' => '',
+        'error'          => null,
+        'formAction'     => '/project/add',
+        'submitLabel'    => 'Add project',
+    ]);
+}
+
+function handleProjectCreate(): void
+{
+    $pdo = getPdo();
+    $userId = currentUserId();
+
+    $name = validateString($_POST['name'] ?? null, 100);
+    $website = validateString($_POST['website'] ?? null, 2048);
+
+    if ($name === null || $website === null) {
+        renderPage('Add Project', 'project_form.php', [
+            'projectId'      => null,
+            'projectName'    => is_string($_POST['name'] ?? null) ? $_POST['name'] : '',
+            'projectWebsite' => is_string($_POST['website'] ?? null) ? $_POST['website'] : '',
+            'error'          => 'Please enter a name (1-100 characters) and a website URL (1-2048 characters).',
+            'formAction'     => '/project/add',
+            'submitLabel'    => 'Add project',
+        ]);
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO projects (user_id, name, website, created_at) VALUES (?, ?, ?, ?)'
+    );
+    $stmt->execute([$userId, $name, $website, date('Y-m-d H:i:s')]);
+
+    redirect('/project/' . (int) $pdo->lastInsertId());
+}
+
+function handleProjectEditForm(array $project): void
+{
+    renderPage('Edit Project', 'project_form.php', [
+        'projectId'      => (int) $project['id'],
+        'projectName'    => $project['name'],
+        'projectWebsite' => $project['website'],
+        'error'          => null,
+        'formAction'     => '/project/' . (int) $project['id'] . '/edit',
+        'submitLabel'    => 'Update project',
+    ]);
+}
+
+function handleProjectUpdate(array $project): void
+{
+    $pdo = getPdo();
+    $projectId = (int) $project['id'];
+
+    $name = validateString($_POST['name'] ?? null, 100);
+    $website = validateString($_POST['website'] ?? null, 2048);
+
+    if ($name === null || $website === null) {
+        renderPage('Edit Project', 'project_form.php', [
+            'projectId'      => $projectId,
+            'projectName'    => is_string($_POST['name'] ?? null) ? $_POST['name'] : '',
+            'projectWebsite' => is_string($_POST['website'] ?? null) ? $_POST['website'] : '',
+            'error'          => 'Please enter a name (1-100 characters) and a website URL (1-2048 characters).',
+            'formAction'     => '/project/' . $projectId . '/edit',
+            'submitLabel'    => 'Update project',
+        ]);
+        return;
+    }
+
+    $stmt = $pdo->prepare('UPDATE projects SET name = ?, website = ? WHERE id = ?');
+    $stmt->execute([$name, $website, $projectId]);
+
+    redirect('/project/' . $projectId);
+}
+
+function handleProjectDelete(array $project): void
+{
+    $pdo = getPdo();
+
+    // Cascade deletes keywords + positions via ON DELETE CASCADE (seed.php schema).
+    $stmt = $pdo->prepare('DELETE FROM projects WHERE id = ?');
+    $stmt->execute([(int) $project['id']]);
+
+    redirect('/');
+}
+
 // --- Request parsing ---
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -498,6 +608,9 @@ if ($method === 'POST') {
 
 // --- Route dispatch ---
 
+$pdo = getPdo();
+
+// Auth routes (accessible to anonymous users).
 if ($method === 'GET' && $path === '/register') {
     handleRegisterForm();
 } elseif ($method === 'POST' && $path === '/register') {
@@ -508,24 +621,66 @@ if ($method === 'GET' && $path === '/register') {
     handleLogin();
 } elseif ($method === 'POST' && $path === '/logout') {
     handleLogout();
+
+// Root: redirect to the user's most-recent project, or to the add-project page
+// if they have none.
 } elseif ($method === 'GET' && $path === '/') {
-    handleList();
-} elseif ($method === 'GET' && $path === '/add') {
-    handleAddForm();
-} elseif ($method === 'POST' && $path === '/add') {
-    handleCreate();
-} elseif ($method === 'GET' && $first === 'keyword' && ($id = validateIntId($second)) !== null) {
-    handleDetail($id);
-} elseif ($method === 'GET' && $first === 'export' && ($id = validateIntId($second)) !== null) {
-    handleExport($id);
-} elseif ($method === 'GET' && $first === 'edit' && ($id = validateIntId($second)) !== null) {
-    handleEditForm($id);
-} elseif ($method === 'POST' && $first === 'edit' && ($id = validateIntId($second)) !== null) {
-    handleUpdate($id);
-} elseif ($method === 'POST' && $first === 'delete' && ($id = validateIntId($second)) !== null) {
-    handleDelete($id);
-} elseif ($method === 'POST' && $path === '/refresh') {
-    handleRefresh();
+    $userId = currentUserId();
+    $project = getLatestProjectForUser($pdo, (int) $userId);
+    if ($project !== null) {
+        redirect('/project/' . (int) $project['id']);
+    }
+    redirect('/project/add');
+
+// Project CRUD (not scoped to a specific project id).
+} elseif ($method === 'GET' && $path === '/project/add') {
+    handleProjectForm();
+} elseif ($method === 'POST' && $path === '/project/add') {
+    handleProjectCreate();
+
+// Project-scoped routes: /project/{pid}/...
+} elseif ($first === 'project' && ($projectId = validateIntId($segments[1] ?? null)) !== null) {
+    // Ownership check: 404 if the project doesn't exist or belongs to another user.
+    $project = getProjectForUser($pdo, $projectId, (int) currentUserId());
+    if ($project === null) {
+        sendNotFound('Project not found.');
+    }
+    $projectId = (int) $project['id'];
+    $sub1 = $segments[2] ?? '';
+
+    if ($method === 'GET' && $sub1 === '') {
+        handleList($projectId, $project);
+    } elseif ($method === 'GET' && $sub1 === 'add') {
+        handleAddForm($projectId, $project);
+    } elseif ($method === 'POST' && $sub1 === 'add') {
+        handleCreate($projectId, $project);
+    } elseif ($method === 'GET' && $sub1 === 'edit') {
+        handleProjectEditForm($project);
+    } elseif ($method === 'POST' && $sub1 === 'edit') {
+        handleProjectUpdate($project);
+    } elseif ($method === 'POST' && $sub1 === 'delete') {
+        handleProjectDelete($project);
+    } elseif ($method === 'POST' && $sub1 === 'refresh') {
+        handleRefresh($projectId);
+    } elseif ($sub1 === 'keyword' && ($keywordId = validateIntId($segments[3] ?? null)) !== null) {
+        $sub2 = $segments[4] ?? '';
+
+        if ($method === 'GET' && $sub2 === '') {
+            handleDetail($projectId, $project, $keywordId);
+        } elseif ($method === 'GET' && $sub2 === 'export') {
+            handleExport($projectId, $project, $keywordId);
+        } elseif ($method === 'GET' && $sub2 === 'edit') {
+            handleEditForm($projectId, $project, $keywordId);
+        } elseif ($method === 'POST' && $sub2 === 'edit') {
+            handleUpdate($projectId, $project, $keywordId);
+        } elseif ($method === 'POST' && $sub2 === 'delete') {
+            handleDelete($projectId, $project, $keywordId);
+        } else {
+            sendNotFound();
+        }
+    } else {
+        sendNotFound();
+    }
 } else {
     sendNotFound();
 }

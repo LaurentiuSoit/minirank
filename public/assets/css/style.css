@@ -23,6 +23,43 @@ header h1 {
     font-weight: 600;
 }
 
+/* Project switcher (S2) — sits in the header between the title and auth nav */
+.project-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+.switcher-label {
+    font-size: 0.85rem;
+    color: #6a737d;
+}
+.project-switcher select {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    background: #fff;
+    cursor: pointer;
+}
+.add-project-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: #0366d6;
+    text-decoration: none;
+    border: 1px solid #d0d7de;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.add-project-link:hover {
+    background: #f6f8fa;
+}
+
 main {
     max-width: 960px;
     margin: 0 auto;
@@ -53,6 +90,39 @@ main {
     gap: 1rem;
     align-items: center;
     margin-bottom: 1rem;
+}
+
+/* Project header (S2) — shown above the keyword list */
+.project-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e1e4e8;
+}
+.project-name {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+.project-website {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6a737d;
+}
+.project-website a {
+    color: #0366d6;
+    text-decoration: none;
+}
+.project-website a:hover {
+    text-decoration: underline;
+}
+.project-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 .search-form {
     display: flex;
@@ -367,6 +437,15 @@ main {
     .detail-actions {
         flex-direction: column;
         gap: 0.5rem;
+    }
+
+    /* Project header: stack on mobile */
+    .project-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .project-actions {
+        width: 100%;
     }
 
     /* Larger touch targets for fingers */

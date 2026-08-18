@@ -141,3 +141,34 @@ function requireAuth(): void
         redirect('/login');
     }
 }
+
+// --- Project helpers (S2) ---
+
+// Fetches a project row only if it belongs to $userId (ownership check).
+// Returns null when the project doesn't exist or belongs to another user —
+// the caller treats both cases as 404 to avoid leaking existence.
+function getProjectForUser(PDO $pdo, int $projectId, int $userId): ?array
+{
+    $stmt = $pdo->prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?');
+    $stmt->execute([$projectId, $userId]);
+    $project = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $project ?: null;
+}
+
+// Returns the user's most-recently-created project (for the / → redirect).
+// Returns null when the user has zero projects.
+function getLatestProjectForUser(PDO $pdo, int $userId): ?array
+{
+    $stmt = $pdo->prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY id DESC LIMIT 1');
+    $stmt->execute([$userId]);
+    $project = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $project ?: null;
+}
+
+// Returns all projects for a user, ordered by id — used by the project switcher.
+function getUserProjects(PDO $pdo, int $userId): array
+{
+    $stmt = $pdo->prepare('SELECT id, name, website FROM projects WHERE user_id = ? ORDER BY id ASC');
+    $stmt->execute([$userId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
