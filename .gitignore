@@ -15,7 +15,7 @@ data/*
 
 /vendor/
 /node_modules/
-
+composer.phar
 .phpunit.result.cache
 .phpunit.cache/
 /coverage/

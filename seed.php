@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/db.php';
 
 const KEYWORDS = [
     'best running shoes',
@@ -155,4 +155,7 @@ function main(): void
     echo 'Demo user: demo@example-shop.de / minirank' . PHP_EOL;
 }
 
-main();
+if (php_sapi_name() === 'cli'
+    && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
+    main();
+}

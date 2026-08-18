@@ -22,6 +22,7 @@ The app requires a login (a demo account is seeded — see below). Keywords are 
 
 - PHP 8.1+
 - The `pdo_sqlite` PHP extension (included in most PHP installations).
+- Composer (for running tests)
 
 ## Setup
 
@@ -42,7 +43,17 @@ open http://localhost:8000
 
 That's it — the app is running. To start fresh at any time, re-run `php seed.php` (it deletes and recreates the database).
 
-### Demo account
+### Testing
+
+```bash
+curl -sS https://getcomposer.org/installer | php      # download composer
+php composer.phar install        # install PHPUnit
+vendor/bin/phpunit      # run the test suite
+```
+
+Tests cover input validation (`validateIntId`, `validateString`), trend calculation (`calculateTrend`, `getKeywordTrend`), the seed helpers (`clamp`, `generateWalk`), and HTML escaping.
+
+###compo Demo account
 
 The seed script creates a demo user so you can log in immediately:
 
