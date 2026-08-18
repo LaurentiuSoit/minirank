@@ -25,3 +25,5 @@ Implement docker compose setup : https://opncd.ai/share/aO8tkagG
 Add chart to keyword detail page : https://opncd.ai/share/fQRU4Ylc
 
 Add CSV export functionality : https://opncd.ai/share/NNMS9EyM
+
+Add user accounts and CSRF : https://opncd.ai/share/rI88M1A7
