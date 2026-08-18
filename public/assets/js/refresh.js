@@ -15,9 +15,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     btn.addEventListener('click', function () {
         btn.disabled = true;
+        btn.textContent = 'Refreshing…';
         showStatus('Refreshing...', false);
 
-        fetch('/refresh', { method: 'POST' })
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        var token = meta ? meta.getAttribute('content') : '';
+
+        fetch('/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'csrf_token=' + encodeURIComponent(token)
+        })
             .then(function (res) { return res.json(); })
             .then(function (data) {
                 if (data.status === 'ok' && data.keywords) {

@@ -11,6 +11,7 @@
 <?php endif; ?>
 
 <form method="post" action="<?= escape($formAction) ?>" class="keyword-form">
+    <input type="hidden" name="csrf_token" value="<?= escape(csrfToken()) ?>">
     <label for="phrase">Keyword</label>
     <input type="text" name="phrase" id="phrase"
            value="<?= escape($phrase) ?>"

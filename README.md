@@ -1,8 +1,8 @@
 # MiniRank
 
-A keyword position tracker for a single website. All ranking data is simulated locally — no search engines or external APIs involved. Positions are numbers 1–100 where **lower is better** (rank 1 is the top result, 100 is the worst).
+A keyword position tracker. All ranking data is simulated locally — no search engines or external APIs involved. Positions are numbers 1–100 where **lower is better** (rank 1 is the top result, 100 is the worst).
 
-This is a single-user app — there is no login. The website being tracked is configured in code (`src/db.php`).
+The app requires a login (a demo account is seeded — see below). The website being tracked is configured in code (`src/db.php`).
 
 ## What it does
 
@@ -40,6 +40,16 @@ open http://localhost:8000
 ```
 
 That's it — the app is running. To start fresh at any time, re-run `php seed.php` (it deletes and recreates the database).
+
+#### Demo account
+
+The seed script creates a demo user so you can log in immediately:
+
+| Email | Password |
+|---|---|
+| `demo@example-shop.de` | `minirank` |
+
+This is seeded demo data (not a committed secret) — the password is hashed with `password_hash(PASSWORD_DEFAULT)` in the database.
 
 ### Docker
 

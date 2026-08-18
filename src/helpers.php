@@ -72,3 +72,72 @@ function sanitizeFilename(string $phrase, int $id): string
     }
     return $slug . '.csv';
 }
+
+// --- HTTP response helpers (shared so auth/CSRF code in this file can use them) ---
+
+function redirect(string $path): void
+{
+    // 303 See Other: correct status for POST -> GET redirect (PRG pattern).
+    // $path must be a server-relative path starting with '/', never user-supplied.
+    http_response_code(303);
+    header('Location: ' . $path);
+    exit;
+}
+
+function sendNotFound(string $message = 'Not Found'): void
+{
+    http_response_code(404);
+    echo escape($message);
+    exit;
+}
+
+function sendBadRequest(string $message = 'Bad Request'): void
+{
+    http_response_code(400);
+    echo escape($message);
+    exit;
+}
+
+// --- Auth + CSRF helpers (S3) ---
+
+function currentUserId(): ?int
+{
+    $id = $_SESSION['user_id'] ?? null;
+    return is_int($id) && $id > 0 ? $id : null;
+}
+
+function isLoggedIn(): bool
+{
+    return currentUserId() !== null;
+}
+
+// Returns the session-bound CSRF token, generating one on first use.
+// 32 bytes (256 bits) of randomness, hex-encoded = 64 chars.
+function csrfToken(): string
+{
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+// Verifies the CSRF token on POST requests. The auth routes (login/register/logout)
+// are NOT exempt — login-CSRF is a real attack — so this runs for every POST.
+function verifyCsrf(): void
+{
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+    $postedToken = $_POST['csrf_token'] ?? '';
+
+    if ($sessionToken === '' || !hash_equals($sessionToken, $postedToken)) {
+        sendBadRequest('Invalid or missing CSRF token.');
+    }
+}
+
+// Redirects to /login when there is no authenticated user. Called for every
+// route except register/login/logout.
+function requireAuth(): void
+{
+    if (currentUserId() === null) {
+        redirect('/login');
+    }
+}

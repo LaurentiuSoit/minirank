@@ -4,30 +4,17 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/helpers.php';
 
+// Start the session before any output. Cookie params harden it: HttpOnly
+// blocks JS access to the cookie, SameSite=Lax blocks cross-site POSTs from
+// sending it. `secure` is false because dev runs over plain HTTP.
+session_set_cookie_params([
+    'httponly' => true,
+    'samesite' => 'Lax',
+    'secure'   => false,
+]);
+session_start();
+
 // --- Response helpers ---
-
-function sendNotFound(string $message = 'Not Found'): void
-{
-    http_response_code(404);
-    echo escape($message);
-    exit;
-}
-
-function sendBadRequest(string $message = 'Bad Request'): void
-{
-    http_response_code(400);
-    echo escape($message);
-    exit;
-}
-
-function redirect(string $path): void
-{
-    // 303 See Other: correct status for POST -> GET redirect (PRG pattern).
-    // $path must be a server-relative path starting with '/', never user-supplied.
-    http_response_code(303);
-    header('Location: ' . $path);
-    exit;
-}
 
 function sendJson(array $data): void
 {
@@ -380,6 +367,112 @@ function handleRefresh(): void
     }
 }
 
+// --- Auth handlers (S3) ---
+
+function handleRegisterForm(): void
+{
+    renderPage('Register', 'auth_form.php', [
+        'mode'  => 'register',
+        'error' => null,
+        'action' => '/register',
+    ]);
+}
+
+function handleRegister(): void
+{
+    $pdo = getPdo();
+
+    // Email: length-capped string, then format-validated.
+    $email = validateString($_POST['email'] ?? null, 254);
+    $password = $_POST['password'] ?? '';
+
+    $emailValid = $email !== null && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    $passwordValid = is_string($password) && strlen($password) >= 8 && strlen($password) <= 200;
+
+    if (!$emailValid || !$passwordValid) {
+        renderPage('Register', 'auth_form.php', [
+            'mode'  => 'register',
+            'error' => 'Please enter a valid email and a password of at least 8 characters.',
+            'action' => '/register',
+        ]);
+        return;
+    }
+
+    // Prevent duplicate emails.
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
+    $stmt->execute([$email]);
+    if ($stmt->fetchColumn() !== false) {
+        renderPage('Register', 'auth_form.php', [
+            'mode'  => 'register',
+            'error' => 'An account with this email already exists.',
+            'action' => '/register',
+        ]);
+        return;
+    }
+
+    // Insert the new user with a hashed password (PASSWORD_DEFAULT = bcrypt).
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)');
+    $stmt->execute([$email, $hash]);
+
+    // Auto-login after registration (Q2 default).
+    $_SESSION['user_id'] = (int) $pdo->lastInsertId();
+    redirect('/');
+}
+
+function handleLoginForm(): void
+{
+    renderPage('Login', 'auth_form.php', [
+        'mode'  => 'login',
+        'error' => null,
+        'action' => '/login',
+    ]);
+}
+
+function handleLogin(): void
+{
+    $pdo = getPdo();
+
+    $email = validateString($_POST['email'] ?? null, 254);
+    $password = $_POST['password'] ?? '';
+
+    $emailValid = $email !== null && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    $passwordValid = is_string($password) && strlen($password) > 0;
+
+    if (!$emailValid || !$passwordValid) {
+        renderPage('Login', 'auth_form.php', [
+            'mode'  => 'login',
+            'error' => 'Invalid email or password.',
+            'action' => '/login',
+        ]);
+        return;
+    }
+
+    $stmt = $pdo->prepare('SELECT id, password_hash FROM users WHERE email = ?');
+    $stmt->execute([$email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Generic error on any failure: no user-enumeration (wrong email or wrong password).
+    if ($user === false || !password_verify($password, $user['password_hash'])) {
+        renderPage('Login', 'auth_form.php', [
+            'mode'  => 'login',
+            'error' => 'Invalid email or password.',
+            'action' => '/login',
+        ]);
+        return;
+    }
+
+    $_SESSION['user_id'] = (int) $user['id'];
+    redirect('/');
+}
+
+function handleLogout(): void
+{
+    $_SESSION = [];
+    session_destroy();
+    redirect('/login');
+}
+
 // --- Request parsing ---
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -390,9 +483,32 @@ $segments = explode('/', trim($path, '/'));
 $first = $segments[0] ?? '';
 $second = $segments[1] ?? '';
 
+// Auth gate: routes outside auth-exempt set require a logged-in session.
+// Auth routes (register/login/logout) remain accessible to anonymous users.
+$authExempt = ['register', 'login', 'logout'];
+if (!in_array($first, $authExempt, true)) {
+    requireAuth();
+}
+
+// CSRF: every POST must carry a valid session-bound token (including
+// register/login/logout — this blocks login-CSRF).
+if ($method === 'POST') {
+    verifyCsrf();
+}
+
 // --- Route dispatch ---
 
-if ($method === 'GET' && $path === '/') {
+if ($method === 'GET' && $path === '/register') {
+    handleRegisterForm();
+} elseif ($method === 'POST' && $path === '/register') {
+    handleRegister();
+} elseif ($method === 'GET' && $path === '/login') {
+    handleLoginForm();
+} elseif ($method === 'POST' && $path === '/login') {
+    handleLogin();
+} elseif ($method === 'POST' && $path === '/logout') {
+    handleLogout();
+} elseif ($method === 'GET' && $path === '/') {
     handleList();
 } elseif ($method === 'GET' && $path === '/add') {
     handleAddForm();

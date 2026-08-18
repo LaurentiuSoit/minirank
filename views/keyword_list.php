@@ -58,10 +58,11 @@
                      </td>
                      <td class="keyword-actions">
                          <a href="/edit/<?= $id ?>" class="edit-link">Edit</a>
-                         <form method="post" action="/delete/<?= $id ?>" class="delete-form"
-                               onsubmit="return confirm('Are you sure you want to remove this keyword?');">
-                             <button type="submit" class="delete-btn">Delete</button>
-                         </form>
+                          <form method="post" action="/delete/<?= $id ?>" class="delete-form"
+                                onsubmit="return confirm('Are you sure you want to remove this keyword?');">
+                              <input type="hidden" name="csrf_token" value="<?= escape(csrfToken()) ?>">
+                              <button type="submit" class="delete-btn">Delete</button>
+                          </form>
                      </td>
                 </tr>
             <?php endforeach; ?>

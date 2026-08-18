@@ -37,8 +37,9 @@ $createdAt = escape(date('M j, Y', strtotime($keyword['created_at'])));
     <a href="/export/<?= $id ?>" class="export-link">Export CSV</a>
     <a href="/edit/<?= $id ?>" class="edit-link">Edit keyword</a>
     <form method="post" action="/delete/<?= $id ?>" class="delete-form-inline"
-          onsubmit="return confirm('Are you sure you want to remove this keyword?');">
-        <button type="submit" class="delete-btn">Delete keyword</button>
+           onsubmit="return confirm('Are you sure you want to remove this keyword?');">
+         <input type="hidden" name="csrf_token" value="<?= escape(csrfToken()) ?>">
+         <button type="submit" class="delete-btn">Delete keyword</button>
     </form>
 </div>
 

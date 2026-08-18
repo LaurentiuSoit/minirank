@@ -20,6 +20,15 @@ const NUM_DAYS = 30;
 function createSchema(PDO $pdo): void
 {
     $pdo->exec(<<<'SQL'
+CREATE TABLE users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    email         TEXT    NOT NULL UNIQUE,
+    password_hash TEXT    NOT NULL,
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+)
+SQL);
+
+    $pdo->exec(<<<'SQL'
 CREATE TABLE keywords (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     phrase     TEXT    NOT NULL,
@@ -98,11 +107,19 @@ function main(): void
     }
     $pdo = getPdo();
     createSchema($pdo);
+
+    // Demo user (S3). Password is hashed — never stored plaintext.
+    // This is seeded demo data, not a real secret (see README "Demo account").
+    $demoHash = password_hash('minirank', PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)');
+    $stmt->execute(['demo@example-shop.de', $demoHash]);
+
     $createdAt = date('Y-m-d H:i:s', strtotime('-' . (NUM_DAYS - 1) . ' days'));
     foreach (KEYWORDS as $phrase) {
         seedKeyword($pdo, $phrase, SITE_URL, $createdAt);
     }
     echo 'Seeded ' . count(KEYWORDS) . ' keywords, ' . (count(KEYWORDS) * NUM_DAYS) . ' positions into data/minirank.sqlite' . PHP_EOL;
+    echo 'Demo user: demo@example-shop.de / minirank' . PHP_EOL;
 }
 
 main();
