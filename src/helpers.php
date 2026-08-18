@@ -56,6 +56,66 @@ function getKeywordTrend(PDO $pdo, int $keywordId): ?string
     return calculateTrend($currentPosition, $previousPosition);
 }
 
+// Batch version of getKeywordTrend() — fetches the 7-day trend for many
+// keywords in ONE query instead of N+1. Used by the keyword list page (S4).
+// Returns [keywordId => 'improved'|'declined'|'stable'|null].
+function getKeywordTrends(PDO $pdo, array $keywordIds): array
+{
+    if (empty($keywordIds)) {
+        return [];
+    }
+
+    // Build an IN(?, ?, ...) placeholder string — one '?' per ID.
+    // This produces placeholder *syntax* only; every value is bound below.
+    $inPlaceholders = str_repeat('?,', count($keywordIds) - 1) . '?';
+
+    $today = date('Y-m-d');
+    $weekAgo = date('Y-m-d', strtotime('-7 days'));
+
+    $stmt = $pdo->prepare(
+        'SELECT keyword_id, position, recorded_at
+         FROM positions
+         WHERE keyword_id IN (' . $inPlaceholders . ')
+           AND recorded_at IN (?, ?)
+         ORDER BY keyword_id, recorded_at ASC'
+    );
+
+    $params = array_values($keywordIds);
+    $params[] = $weekAgo;  // [0] per keyword = older (previous)
+    $params[] = $today;    // [1] per keyword = newer (current)
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Group the two positions (week-ago, today) per keyword.
+    // ORDER BY keyword_id, recorded_at ASC guarantees positions[0] < positions[1]
+    // chronologically, so [0] = previous and [1] = current.
+    $positionsByKeyword = [];
+    foreach ($rows as $row) {
+        $positionsByKeyword[(int) $row['keyword_id']][] = (int) $row['position'];
+    }
+
+    $trends = [];
+    foreach ($positionsByKeyword as $kwId => $positions) {
+        if (count($positions) >= 2) {
+            $trends[$kwId] = calculateTrend($positions[1], $positions[0]);
+        } else {
+            // Only one of {weekAgo, today} exists → not enough data.
+            $trends[$kwId] = null;
+        }
+    }
+
+    // Ensure every requested ID appears in the result (keywords with zero
+    // position rows get null), so the caller never hits an undefined key.
+    foreach ($keywordIds as $id) {
+        $key = (int) $id;
+        if (!isset($trends[$key])) {
+            $trends[$key] = null;
+        }
+    }
+
+    return $trends;
+}
+
 function escape(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');

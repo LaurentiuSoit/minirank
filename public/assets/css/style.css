@@ -142,6 +142,25 @@ main {
 .clear-search {
     font-size: 0.85rem;
 }
+
+/* === S4: Position / movement filters === */
+.filter-label {
+    font-size: 0.85rem;
+    color: #586069;
+    white-space: nowrap;
+}
+.search-form input[type="number"] {
+    width: 70px;
+    padding: 0.4rem;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+.search-form select {
+    padding: 0.35rem;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: #fff;
+}
 .refresh-btn {
     padding: 0.4rem 1rem;
     cursor: pointer;
@@ -406,6 +425,14 @@ main {
     .search-form button,
     .search-form .clear-search {
         flex: 0 0 auto;
+    }
+
+    /* S4: filter form on mobile — keep inputs compact */
+    .search-form input[type="number"] {
+        flex: 0 0 auto;
+    }
+    .filter-label {
+        font-size: 0.8rem;
     }
 
     /* Full-width action buttons */

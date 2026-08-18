@@ -55,6 +55,28 @@ function handleList(int $projectId, array $project): void
 
     $searchTerm = validateString($_GET['q'] ?? null, 100);
 
+    // S4: position-range filter — validated integers 1–100, null = unbounded.
+    $minPos = null;
+    $val = filter_var($_GET['position_min'] ?? null, FILTER_VALIDATE_INT);
+    if ($val !== false && $val >= 1 && $val <= 100) {
+        $minPos = (int) $val;
+    }
+
+    $maxPos = null;
+    $val = filter_var($_GET['position_max'] ?? null, FILTER_VALIDATE_INT);
+    if ($val !== false && $val >= 1 && $val <= 100) {
+        $maxPos = (int) $val;
+    }
+
+    // S4: movement filter — whitelist only, never placed in SQL.
+    $movement = null;
+    if (isset($_GET['movement'])) {
+        $whitelist = ['improved', 'declined', 'stable'];
+        if (in_array($_GET['movement'], $whitelist, true)) {
+            $movement = $_GET['movement'];
+        }
+    }
+
     $sql = 'SELECT k.id, k.phrase, p.position
             FROM keywords k
             LEFT JOIN positions p
@@ -70,29 +92,61 @@ function handleList(int $projectId, array $project): void
         $params[] = '%' . $searchTerm . '%';
     }
 
+    // S4: position range narrows on the latest-position JOIN. Keywords with no
+    // position (p.position IS NULL) are excluded when a range filter is active,
+    // because NULL >= ? evaluates to NULL (false) — which is correct: a keyword
+    // with no position can't match a position-range filter.
+    if ($minPos !== null) {
+        $sql .= ' AND p.position >= ?';
+        $params[] = $minPos;
+    }
+    if ($maxPos !== null) {
+        $sql .= ' AND p.position <= ?';
+        $params[] = $maxPos;
+    }
+
     $sql .= ' ORDER BY k.id ASC';
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // S4: batch-fetch all 7-day trends in one query (de-N+1) instead of calling
+    // getKeywordTrend() per row.
+    $keywordIds = [];
+    foreach ($rows as $row) {
+        $keywordIds[] = (int) $row['id'];
+    }
+    $trends = getKeywordTrends($pdo, $keywordIds);
+
     // Compute trend per keyword in the handler (not the view) — AGENTS rule:
     // "Do not put SQL or business logic in views/."
     $keywords = [];
     foreach ($rows as $row) {
+        $kwId = (int) $row['id'];
+        $trend = $trends[$kwId] ?? null;
+
+        // Movement filter applied in PHP after trend computation.
+        if ($movement !== null && $trend !== $movement) {
+            continue;
+        }
+
         $keywords[] = [
-            'id'       => (int) $row['id'],
+            'id'       => $kwId,
             'phrase'   => $row['phrase'],
             'position' => $row['position'] !== null ? (int) $row['position'] : null,
-            'trend'    => getKeywordTrend($pdo, (int) $row['id']),
+            'trend'    => $trend,
         ];
     }
 
     renderPage('Keyword List', 'keyword_list.php', [
-        'keywords'   => $keywords,
-        'searchTerm' => $searchTerm,
-        'projectId'  => $projectId,
-        'project'    => $project,
+        'keywords'    => $keywords,
+        'searchTerm'  => $searchTerm,
+        'positionMin' => $minPos,
+        'positionMax' => $maxPos,
+        'movement'    => $movement,
+        'projectId'   => $projectId,
+        'project'     => $project,
     ]);
 }
 

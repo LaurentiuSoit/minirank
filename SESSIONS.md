@@ -29,3 +29,5 @@ Add CSV export functionality : https://opncd.ai/share/NNMS9EyM
 Add user accounts and CSRF : https://opncd.ai/share/rI88M1A7
 
 Implement multiple projects/websites with their own keywords : https://opncd.ai/share/rssvj72w
+
+Add position range and movement filters to keyword list : https://opncd.ai/share/CSMkQCIW

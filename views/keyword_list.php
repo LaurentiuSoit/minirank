@@ -1,6 +1,9 @@
 <?php
-/** @var array $keywords  Rows with keys: id, phrase, position */
+/** @var array $keywords  Rows with keys: id, phrase, position, trend */
 /** @var string|null $searchTerm */
+/** @var int|null $positionMin  Filter bound (1-100) */
+/** @var int|null $positionMax  Filter bound (1-100) */
+/** @var string|null $movement  'improved'|'declined'|'stable' or null */
 /** @var int $projectId */
 /** @var array $project  [id, user_id, name, website, created_at] */
 ?>
@@ -29,8 +32,26 @@
         <input type="search" name="q"
                value="<?= escape((string)($searchTerm ?? '')) ?>"
                maxlength="100" placeholder="Search keywords...">
-        <button type="submit">Search</button>
-        <?php if ($searchTerm !== null): ?>
+
+        <!-- S4: position range filter -->
+        <label class="filter-label" for="position_min">Position</label>
+        <input type="number" name="position_min" id="position_min" min="1" max="100"
+               value="<?= escape((string)($positionMin ?? '')) ?>" placeholder="min">
+        <input type="number" name="position_max" id="position_max" min="1" max="100"
+               value="<?= escape((string)($positionMax ?? '')) ?>" placeholder="max">
+
+        <!-- S4: 7-day movement filter -->
+        <label class="filter-label" for="movement">Movement (7-day)</label>
+        <select name="movement" id="movement">
+            <option value="">All</option>
+            <option value="improved" <?= ($movement === 'improved') ? 'selected' : '' ?>>Improved</option>
+            <option value="declined" <?= ($movement === 'declined') ? 'selected' : '' ?>>Declined</option>
+            <option value="stable"   <?= ($movement === 'stable') ? 'selected' : '' ?>>Stable</option>
+        </select>
+
+        <button type="submit">Filter</button>
+
+        <?php if ($searchTerm !== null || $positionMin !== null || $positionMax !== null || $movement !== null): ?>
             <a href="/project/<?= $projectId ?>" class="clear-search">Clear</a>
         <?php endif; ?>
     </form>
