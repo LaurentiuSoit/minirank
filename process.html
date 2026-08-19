@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniRank — Process Document</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1c2024;
+    --muted: #5c6470;
+    --border: #e2e5e9;
+    --accent: #2f6fed;
+    --accent-soft: #eef3ff;
+    --code-bg: #f5f6f8;
+    --warn-bg: #fff8ec;
+    --warn-border: #f0d9a6;
+    --fail-bg: #fdf1f1;
+    --fail-border: #f0b8b8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 5rem;
+  }
+  header.doc-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  header.doc-header h1 {
+    margin: 0 0 0.4rem;
+    font-size: 1.9rem;
+  }
+  header.doc-header p.meta {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  nav.toc {
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 2.5rem;
+    font-size: 0.95rem;
+  }
+  nav.toc strong { display: block; margin-bottom: 0.5rem; }
+  nav.toc ol { margin: 0; padding-left: 1.2rem; }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  section {
+    margin-bottom: 3rem;
+  }
+  section h2 {
+    font-size: 1.4rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.2rem;
+  }
+  section h3 {
+    font-size: 1.1rem;
+    margin: 1.6rem 0 0.6rem;
+  }
+  .placeholder {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    color: var(--muted);
+    font-style: italic;
+    background: var(--code-bg);
+  }
+  .todo {
+    display: inline-block;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: #7a5c19;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border-radius: 5px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.02em; }
+  tr:last-child td { border-bottom: none; }
+  a { color: var(--accent); }
+  code, pre {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .prompt-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.4rem;
+    margin: 1.2rem 0 1.8rem;
+  }
+  .prompt-card.failed {
+    background: var(--fail-bg);
+    border-color: var(--fail-border);
+  }
+  .prompt-card .label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .prompt-card.failed .label { color: #a13a3a; }
+  .prompt-card .prompt-text {
+    background: var(--code-bg);
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    margin: 0.5rem 0 0.8rem;
+  }
+  .prompt-card h4 {
+    margin: 0.9rem 0 0.3rem;
+    font-size: 0.95rem;
+  }
+  ul.tight li, ol.tight li { margin-bottom: 0.4rem; }
+  .badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  footer.doc-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 1.5rem 1rem 4rem; }
+    header.doc-header h1 { font-size: 1.5rem; }
+    table, thead, tbody, th, td, tr { display: block; }
+    thead { display: none; }
+    tr { border-bottom: 1px solid var(--border); padding: 0.6rem 0; }
+    td { border: none; padding: 0.2rem 0; }
+    td::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.1rem;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <h1>MiniRank: Process Document</h1>
+  </header>
+
+  <nav class="toc">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#plan">Plan</a></li>
+      <li><a href="#prompts">Prompts &amp; Fixes</a></li>
+      <li><a href="#sessions">Session Links</a></li>
+      <li><a href="#retrospective">Retrospective</a></li>
+    </ol>
+  </nav>
+
+  <section id="plan">
+    <h2>Plan</h2>
+
+      <h3>Preparation</h3>
+      <div>
+          Before starting the implementation of the project, I first held a brainstorming session with Claude to clarify the requirements and scope of the project. We discussed the features, common pitfalls, things to look out for, which technologies would best suit the project, which free models to pick based on the restrictions that were imposed and other topics to ensure the development process went smoothly.
+          <br>
+          <br>
+          Using the information gathered in the brainstorming and other personal preferences/details, i manually wrote an AGENTS.md file to establish a comprehensive ruleset for the agent to follow. This file contained context of the application, things to look out for (like security concerns), things to do, things to avoid, details about my prefered working style etc.
+          <br>
+          <br>
+          I attribute a great deal of the project's success to the AGENTS.md file, as it represented a great base and guardrail for the agent, ensuring that the generated code was aligned with my expectations and requirements. It also helped to reduce the number of mistakes made by the agent, as it provided clear guidance on what to do and what to avoid, also ensuring that it can correct mistakes by itself, thus reducing developer intervention and time spent reviewing.
+      </div>
+
+    <h3>Stack &amp; scope decisions</h3>
+    <ul class="tight">
+      <li><strong>Backend:</strong> plain PHP (no framework), the brief specifically flags that a large framework scaffold works against a small-context free model, so a thin, explicit codebase was chosen deliberately.
+      <li><strong>Database:</strong> SQLite, per M7's recommendation, zero setup, trivial to seed, easy for the grader to run with a single <code>php -S</code> command.
+      <li><strong>Frontend:</strong> server-rendered HTML/CSS with a small amount of vanilla JS for the AJAX refresh (M3) and the chart (S1).</li>
+        <li><strong>Models: </strong> the OpenCode Zen model i chose was Laguna S 2.1, as the suggested DeepSeek model did not function. The first fallback, the free tier Google Flash model, Gemini 3.7 Flash, also proved unusable. The "emergency lane" model from OpenRouter, Laguna XS 2.1, was my 2nd fallback. </li>
+    </ul>
+
+    <h3>Key decisions</h3>
+    <ul class="tight">
+        <li><strong>Keep it simple.</strong> The main idea behind the implementation was to have an application that is light, uses basic and easy to understand features and spends the least amount of tokens.</li>
+        <li><strong>Guardrail from the get-go.</strong> I decided to use an AGENTS.md file from the very beginning, in an attempt to reduce agent mistakes and omissions, thus reducing time and tokens spent on improving the app.</li>
+        <li><strong>Heavy planning.</strong> Each feature set (Mandatory and Stretch goals) included a great deal of planning, both for the set as a whole, creating a general overview of the implementation process and order, as well as distinct, feature specific plans, where details were discussed, ambiguities were cleared up and important decisions were made.</li>
+    </ul>
+
+    <h3>What I'd change in hindsight</h3>
+    <p>In hindsight, one important aspect I would change would be the session handling for the tasks. I could have used fewer sessions, merging smaller features into one session, thus reducing costs for regaining context for every single feature.</p>
+
+  </section>
+
+    <section id="sessions">
+        <h2>Session Links</h2>
+        <p>Substantial opencode sessions from building MiniRank, shared via the session menu.</p>
+        <table>
+            <thead>
+            <tr><th>#</th><th>Session</th><th>Link</th></tr>
+            </thead>
+            <tbody>
+            <tr><td data-label="#">1</td><td data-label="Session">Initial planning session for application structure</td><td data-label="Link"><a href="https://opncd.ai/share/e7uz2goK" target="_blank" rel="noopener">opncd.ai/share/e7uz2goK</a></td></tr>
+            <tr><td data-label="#">2</td><td data-label="Session">Database schema and seed planning</td><td data-label="Link"><a href="https://opncd.ai/share/hqYuBHmU" target="_blank" rel="noopener">opncd.ai/share/hqYuBHmU</a></td></tr>
+            <tr><td data-label="#">3</td><td data-label="Session">Implement database schema and seed script</td><td data-label="Link"><a href="https://opncd.ai/share/GwLW26S4" target="_blank" rel="noopener">opncd.ai/share/GwLW26S4</a></td></tr>
+            <tr><td data-label="#">4</td><td data-label="Session">Add helper functions</td><td data-label="Link"><a href="https://opncd.ai/share/yuwlipty" target="_blank" rel="noopener">opncd.ai/share/yuwlipty</a></td></tr>
+            <tr><td data-label="#">5</td><td data-label="Session">Add routing and basic views</td><td data-label="Link"><a href="https://opncd.ai/share/x1ruB3fX" target="_blank" rel="noopener">opncd.ai/share/x1ruB3fX</a></td></tr>
+            <tr><td data-label="#">6</td><td data-label="Session">Add keyword list and refresh button</td><td data-label="Link"><a href="https://opncd.ai/share/zxjFG3hd" target="_blank" rel="noopener">opncd.ai/share/zxjFG3hd</a></td></tr>
+            <tr><td data-label="#">7</td><td data-label="Session">Implement keyword CRUD with forms</td><td data-label="Link"><a href="https://opncd.ai/share/WBLBNrD1" target="_blank" rel="noopener">opncd.ai/share/WBLBNrD1</a></td></tr>
+            <tr><td data-label="#">8</td><td data-label="Session">Implement keyword detail page and trend calculation</td><td data-label="Link"><a href="https://opncd.ai/share/1bWg0OeC" target="_blank" rel="noopener">opncd.ai/share/1bWg0OeC</a></td></tr>
+            <tr><td data-label="#">9</td><td data-label="Session">Add responsive CSS for phone-width usability (M8)</td><td data-label="Link"><a href="https://opncd.ai/share/8npLWetD" target="_blank" rel="noopener">opncd.ai/share/8npLWetD</a></td></tr>
+            <tr><td data-label="#">10</td><td data-label="Session">Create initial README.md</td><td data-label="Link"><a href="https://opncd.ai/share/0yOOxQG3" target="_blank" rel="noopener">opncd.ai/share/0yOOxQG3</a></td></tr>
+            <tr><td data-label="#">11</td><td data-label="Session">Create plan for stretch goals</td><td data-label="Link"><a href="https://opncd.ai/share/9RsnydPB" target="_blank" rel="noopener">opncd.ai/share/9RsnydPB</a></td></tr>
+            <tr><td data-label="#">12</td><td data-label="Session">Implement docker compose setup</td><td data-label="Link"><a href="https://opncd.ai/share/aO8tkagG" target="_blank" rel="noopener">opncd.ai/share/aO8tkagG</a></td></tr>
+            <tr><td data-label="#">13</td><td data-label="Session">Add chart to keyword detail page</td><td data-label="Link"><a href="https://opncd.ai/share/fQRU4Ylc" target="_blank" rel="noopener">opncd.ai/share/fQRU4Ylc</a></td></tr>
+            <tr><td data-label="#">14</td><td data-label="Session">Add CSV export functionality</td><td data-label="Link"><a href="https://opncd.ai/share/NNMS9EyM" target="_blank" rel="noopener">opncd.ai/share/NNMS9EyM</a></td></tr>
+            <tr><td data-label="#">15</td><td data-label="Session">Add user accounts and CSRF</td><td data-label="Link"><a href="https://opncd.ai/share/rI88M1A7" target="_blank" rel="noopener">opncd.ai/share/rI88M1A7</a></td></tr>
+            <tr><td data-label="#">16</td><td data-label="Session">Implement multiple projects/websites with their own keywords</td><td data-label="Link"><a href="https://opncd.ai/share/rssvj72w" target="_blank" rel="noopener">opncd.ai/share/rssvj72w</a></td></tr>
+            <tr><td data-label="#">17</td><td data-label="Session">Add position range and movement filters to keyword list</td><td data-label="Link"><a href="https://opncd.ai/share/CSMkQCIW" target="_blank" rel="noopener">opncd.ai/share/CSMkQCIW</a></td></tr>
+            <tr><td data-label="#">18</td><td data-label="Session">Add PHPUnit tests for core logic</td><td data-label="Link"><a href="https://opncd.ai/share/QNTCsFH6" target="_blank" rel="noopener">opncd.ai/share/QNTCsFH6</a></td></tr>
+            </tbody>
+        </table>
+    </section>
+  <section id="prompts">
+    <h2>Prompts &amp; Fixes</h2>
+    <p>Three real prompts that mattered, including one that failed, with the concrete mistakes the AI made and how they were caught.</p>
+
+    <div class="prompt-card">
+      <div class="label">Prompt 1</div>
+      <div class="prompt-text"><code>"Make a plan for implementing the auth + csrf step of the stretch_goals_plan.md"</code></div>
+      <h4>What happened</h4>
+      <p>Careful ordering decision (auth check before CSRF check on POSTs, for a friendlier redirect instead of a raw 400). Caught that the AJAX refresh button is a fetch() call, not a form, so it needed a <meta> tag to carry the CSRF token, not just a hidden form field. Explicitly avoided running the password field through the generic validateString() trim helper, reasoning that trimming a password is a subtle bug. Flagged 5 separate open design questions (Q1-Q5) instead of guessing.</p>
+      <h4>Mistakes and fixes</h4>
+      <p>The agent proposed an implementation that affected 10 files, without mentioning a split of tasks. I let it slide due to the scope of the feature and concerns regarding token usage. During testing, the agent hung up and I had to awaken it. It also changed the port of the server it started from 8000 to 8765 without asking or explaining why.</p>
+    </div>
+
+    <div class="prompt-card failed">
+      <div class="label">Prompt 2: the one that failed <span class="todo"></span></div>
+      <div class="prompt-text"><code>"Implement the features described in DB_SEED_PLAN.md. Other relevant information for the application can be found in the md files mentioned at the start."</code></div>
+      <h4>What went wrong</h4>
+      <p>On the first prompt, the AI spent its entire turn silently re-litigating trivial placement questions (e.g. whether date_default_timezone_set('UTC') belongs in db.php or seed.php) without calling a single tool or writing any file. It went completely idle. </p>
+      <h4>How I caught it and recovered</h4>
+      <p>I had to send a literal "are you still working?" before it responded: "I haven't actually written any files yet — I've only read the planning documents." Only then did it produce src/db.php and seed.php.</p>
+    </div>
+
+    <div class="prompt-card">
+      <div class="label">Prompt 3 </div>
+      <div class="prompt-text"><code>"Based on the Stretch Goals Plan, make a plan for step 1 of the Implementation Order"
+          "1. Optiona A <br> 2. include it <br> Write this plan in an md file, then implement it"</code></div>
+      <h4>What happened</h4>
+      <p>Before building, it flagged upfront that docker-php-ext-install pdo_sqlite might fail without libsqlite3-dev. It then actually did fail during docker build and instead of silently patching, it said "As I flagged in the plan, pdo_sqlite compilation needs...", applied its pre-documented fallback, and went back and corrected the plan file to match reality. Good real "predicted failure -> it happened -> proper recovery" story. Also correctly kept DB seeding CLI-only.</p>
+      <h4>Mistakes and fixes</h4>
+      <p>Despite AGENTS.md mentioning no git commits in the plan file, it did inlucde one.</p>
+    </div>
+  </section>
+
+  <section id="retrospective">
+    <h2>Retrospective</h2>
+
+    <h3>What I'd do differently</h3>
+        I would mainly try and shorten the number of sessions, as I feel like a good portion of tokens and time were spent on the agent regaining context of the application, when multiple small features could've fit in one session.
+
+    <h3>Time spent</h3>
+    <table>
+      <thead><tr><th>Area</th><th>Approx. hours</th></tr></thead>
+      <tbody>
+        <tr><td data-label="Area">Planning</td><td data-label="Hours">2</td></tr>
+        <tr><td data-label="Area">Must-haves (M1–M8)</td><td data-label="Hours">5</td></tr>
+        <tr><td data-label="Area">Stretch goals (S1–S8)</td><td data-label="Hours">5</td></tr>
+        <tr><td data-label="Area">Debugging / catching AI mistakes</td><td data-label="Hours">1</td></tr>
+        <tr><td data-label="Area">README &amp; this process document</td><td data-label="Hours">2</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+</body>
+</html>
