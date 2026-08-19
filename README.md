@@ -52,17 +52,7 @@ To regenerate the demo database from inside the container (**CLI**, not an HTTP 
 docker compose run --rm web php seed.php
 ```
 
-### Testing
-
-```bash
-curl -sS https://getcomposer.org/installer | php      # download composer
-php composer.phar install        # install PHPUnit
-vendor/bin/phpunit      # run the test suite
-```
-
-Tests cover input validation (`validateIntId`, `validateString`), trend calculation (`calculateTrend`, `getKeywordTrend`), the seed helpers (`clamp`, `generateWalk`), and HTML escaping.
-
-###compo Demo account
+### Demo account
 
 The seed script creates a demo user so you can log in immediately:
 
@@ -72,6 +62,17 @@ The seed script creates a demo user so you can log in immediately:
 
 This is seeded demo data (not a committed secret) — the password is hashed with `password_hash(PASSWORD_DEFAULT)` in the database.
 The seed script creates one demo user with 2 projects (Shop, Blog), distributes 10 keywords across them, and generates 30 days of random-walk positions starting at a random base of 20–80. The refresh endpoint walks each position by ±3 per day, clamped to 1–100.
+
+
+### Testing
+
+```bash
+curl -sS https://getcomposer.org/installer | php      # download composer
+php composer.phar install        # install PHPUnit
+vendor/bin/phpunit      # run the test suite
+```
+
+Tests cover input validation (`validateIntId`, `validateString`), trend calculation (`calculateTrend`, `getKeywordTrend`), the seed helpers (`clamp`, `generateWalk`), and HTML escaping.
 
 ## Usage
 
