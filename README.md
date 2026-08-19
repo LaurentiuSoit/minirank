@@ -27,17 +27,13 @@ The app requires a login (a demo account is seeded — see below). Keywords are 
 ## Setup
 
 ```bash
-# 1. Clone and enter the directory
-git clone <repo-url> minirank
-cd minirank
-
-# 2. Seed the database (creates schema + 30 days of demo data)
+# 1. Seed the database (creates schema + 30 days of demo data)
 php seed.php
 
-# 3. Start the built-in server
+# 2. Start the built-in server
 php -S localhost:8000 -t public public/router.php
 
-# 4. Open in your browser
+# 3. Open in your browser
 open http://localhost:8000
 ```
 
